@@ -1,0 +1,86 @@
+package assignment1;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.security.MessageDigest;
+import java.math.BigInteger;
+import java.util.HashMap;
+import java.util.Map;
+
+public class SimpleCracker {
+	
+	public static String toHex(byte[] bytes)
+	{
+		BigInteger bi = new BigInteger(1, bytes);
+		return String.format("%0" + (bytes.length << 1) + "X", bi);
+	}
+	
+    public static void main(String[] args) {
+        try {
+            // Read the shadow file and store username and hash pairs in a dictionary
+            Map<String, String> shadowMap = new HashMap<>();
+            BufferedReader shadowReader = new BufferedReader(new FileReader("shadow-simple"));
+            String line;
+            System.out.println("\n-----------------------------\nPerforming attack on shadow-simple\n");
+            while ((line = shadowReader.readLine()) != null) {
+                String[] parts = line.split(":");
+                if (parts.length == 3) {
+
+                    String username = parts[0];
+                    String salthash = parts[1]+ parts[2];
+                    shadowMap.put(username, salthash);
+
+                    //System.out.print(parts[0]+":");
+                    //System.out.print(salthash.substring(0,8)+":");
+                    //System.out.println(salthash.substring(8));
+                    //Reading successfully 
+                }
+            }
+            
+            shadowReader.close();
+
+            // Read the common passwords file and check against the shadow file
+            BufferedReader commonPasswordsReader = new BufferedReader(new FileReader("common-passwords.txt"));
+            while ((line = commonPasswordsReader.readLine()) != null) {
+                String commonPassword = line.trim();
+                //System.out.println(commonPassword);
+                for (Map.Entry<String, String> entry : shadowMap.entrySet()) {
+                    String username = entry.getKey();
+                	String salt = entry.getValue().substring(0,8);
+                    String shadowHash = entry.getValue().substring(8);
+                    String input = salt+commonPassword; 
+                    
+                    
+                    MessageDigest messageDigest = MessageDigest.getInstance("MD5");
+
+                    // Convert the input string to bytes
+                    byte[] inputBytes = input.getBytes();
+
+                    // Update the MessageDigest with the input bytes
+                    messageDigest.update(inputBytes);
+
+                    // Calculate the hash
+                    byte[] hashBytes = messageDigest.digest();
+
+                    // Convert the hash bytes to a hexadecimal string
+                    String hexHash = toHex(hashBytes);
+                    
+                    
+                    if (hexHash.equals(shadowHash)) {
+                        System.out.println( username + ":" + commonPassword);
+                    }
+                }
+            }
+            commonPasswordsReader.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        
+
+
+    }
+
+
+}
+
